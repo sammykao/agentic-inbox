@@ -202,13 +202,14 @@ export function getSignatureBlock(settings?: {
 	signature?: { enabled: boolean; text?: string; html?: string; markdown?: string };
 }): string {
 	const sig = settings?.signature;
-	if (sig?.enabled && (sig?.markdown || sig?.html || sig?.text)) {
-		// Markdown and HTML signatures are sanitized before they are inserted into
-		// the composer. Text signatures are HTML-escaped since they have no formatting.
-		const content = sig.markdown
-			? markdownSignatureToHtml(sig.markdown)
-			: sig.html
-				? DOMPurify.sanitize(sig.html)
+	if (sig?.enabled && (sig?.html || sig?.markdown || sig?.text)) {
+		// HTML signatures are sanitized before they are inserted into the composer.
+		// Markdown remains as a legacy fallback for previously saved settings.
+		// Text signatures are HTML-escaped since they have no formatting.
+		const content = sig.html
+			? DOMPurify.sanitize(sig.html)
+			: sig.markdown
+				? markdownSignatureToHtml(sig.markdown)
 				: escapeHtml(sig.text || "").replace(/\n/g, "<br>");
 		return `<div style="border-top: 1px solid #ccc; margin-top: 16px; padding-top: 12px;">${content}</div>`;
 	}
