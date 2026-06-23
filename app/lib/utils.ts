@@ -131,14 +131,17 @@ export function escapeHtml(text: string): string {
 
 function renderInlineMarkdown(text: string): string {
 	return escapeHtml(text)
-		.replace(/`([^`]+)`/g, "<code>$1</code>")
+		.replace(
+			/`([^`]+)`/g,
+			'<code style="background: #f3f4f6; border-radius: 4px; padding: 1px 4px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.92em;">$1</code>',
+		)
 		.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
 		.replace(/__([^_]+)__/g, "<strong>$1</strong>")
 		.replace(/\*([^*]+)\*/g, "<em>$1</em>")
 		.replace(/_([^_]+)_/g, "<em>$1</em>")
 		.replace(
 			/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
-			'<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>',
+			'<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">$1</a>',
 		);
 }
 
@@ -155,15 +158,19 @@ export function markdownSignatureToHtml(markdown: string): string {
 
 	const flushParagraph = () => {
 		if (paragraph.length === 0) return;
-		blocks.push(`<p>${paragraph.map(renderInlineMarkdown).join("<br>")}</p>`);
+		blocks.push(
+			`<p style="margin: 0 0 8px 0; line-height: 1.5;">${paragraph
+				.map(renderInlineMarkdown)
+				.join("<br>")}</p>`,
+		);
 		paragraph = [];
 	};
 
 	const flushList = () => {
 		if (listItems.length === 0) return;
 		blocks.push(
-			`<ul>${listItems
-				.map((item) => `<li>${renderInlineMarkdown(item)}</li>`)
+			`<ul style="margin: 0 0 8px 18px; padding: 0; line-height: 1.5;">${listItems
+				.map((item) => `<li style="margin: 2px 0;">${renderInlineMarkdown(item)}</li>`)
 				.join("")}</ul>`,
 		);
 		listItems = [];
@@ -191,7 +198,7 @@ export function markdownSignatureToHtml(markdown: string): string {
 
 	return DOMPurify.sanitize(blocks.join(""), {
 		ALLOWED_TAGS: ["a", "br", "code", "em", "li", "p", "strong", "ul"],
-		ALLOWED_ATTR: ["href", "rel", "target"],
+		ALLOWED_ATTR: ["href", "rel", "style", "target"],
 	});
 }
 
@@ -210,7 +217,7 @@ export function getSignatureBlock(settings?: {
 			: sig.html
 				? DOMPurify.sanitize(sig.html)
 				: escapeHtml(sig.text || "").replace(/\n/g, "<br>");
-		return `<div style="border-top: 1px solid #ccc; margin-top: 16px; padding-top: 12px;">${content}</div>`;
+		return `<div style="border-top: 1px solid #d1d5db; margin-top: 16px; padding-top: 12px; color: #374151; font-size: 14px; line-height: 1.5;">${content}</div>`;
 	}
 	return "";
 }

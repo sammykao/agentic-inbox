@@ -141,8 +141,9 @@ export default function SettingsRoute() {
 						</div>
 					</div>
 					<p className="text-xs text-kumo-subtle mb-3">
-						Write your signature in Markdown. It supports paragraphs, links,
-						bold, italic, inline code, and simple lists.
+						Write in Markdown; sent emails receive rendered HTML, not raw
+						Markdown syntax. Supports paragraphs, links, bold, italic,
+						inline code, and simple lists.
 					</p>
 					<div className="grid gap-4 md:grid-cols-2">
 						<div>
@@ -159,7 +160,7 @@ export default function SettingsRoute() {
 						</div>
 						<div>
 							<div className="text-xs font-medium text-kumo-default mb-2">
-								Preview
+								Preview — sent as formatted HTML
 							</div>
 							<div className="min-h-[174px] rounded-lg border border-kumo-line bg-kumo-recessed px-4 py-3 text-sm text-kumo-default">
 								{signatureMarkdown.trim() ? (
