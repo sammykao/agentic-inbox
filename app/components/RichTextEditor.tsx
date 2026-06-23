@@ -17,7 +17,7 @@ import {
 	TextStrikethroughIcon,
 	TextUnderlineIcon,
 } from "@phosphor-icons/react";
-import { Extension } from "@tiptap/core";
+import { Extension, mergeAttributes, Node } from "@tiptap/core";
 import { Color } from "@tiptap/extension-color";
 import Highlight from "@tiptap/extension-highlight";
 import TiptapImage from "@tiptap/extension-image";
@@ -42,9 +42,11 @@ const EmailHtmlAttributes = Extension.create({
 					"orderedList",
 					"listItem",
 					"horizontalRule",
+					"hardBreak",
 					"image",
 					"textStyle",
 					"link",
+					"emailDiv",
 				],
 				attributes: {
 					class: {
@@ -73,6 +75,46 @@ const EmailHtmlAttributes = Extension.create({
 	},
 });
 
+const EmailDiv = Node.create({
+	name: "emailDiv",
+	group: "block",
+	content: "block*",
+	defining: true,
+
+	addAttributes() {
+		return {
+			class: {
+				default: null,
+				parseHTML: (element) => element.getAttribute("class"),
+			},
+			style: {
+				default: null,
+				parseHTML: (element) => element.getAttribute("style"),
+			},
+			"data-agentic-signature": {
+				default: null,
+				parseHTML: (element) => element.getAttribute("data-agentic-signature"),
+			},
+			align: {
+				default: null,
+				parseHTML: (element) => element.getAttribute("align"),
+			},
+			role: {
+				default: null,
+				parseHTML: (element) => element.getAttribute("role"),
+			},
+		};
+	},
+
+	parseHTML() {
+		return [{ tag: "div" }];
+	},
+
+	renderHTML({ HTMLAttributes }) {
+		return ["div", mergeAttributes(HTMLAttributes), 0];
+	},
+});
+
 interface RichTextEditorProps {
 	value: string;
 	onChange: (value: string) => void;
@@ -85,6 +127,7 @@ export default function RichTextEditor({
 	const editor = useEditor({
 		extensions: [
 			EmailHtmlAttributes,
+			EmailDiv,
 			StarterKit,
 			Underline,
 			TextAlign.configure({ types: ["heading", "paragraph"] }),
