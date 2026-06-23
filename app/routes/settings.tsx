@@ -2,8 +2,21 @@
 // Licensed under the Apache 2.0 license found in the LICENSE file or at:
 //     https://opensource.org/licenses/Apache-2.0
 
-import { Badge, Button, Input, Loader, useKumoToastManager } from "@cloudflare/kumo";
-import { RobotIcon, ArrowCounterClockwiseIcon } from "@phosphor-icons/react";
+import {
+	Badge,
+	Button,
+	Input,
+	Loader,
+	Switch,
+	useKumoToastManager,
+} from "@cloudflare/kumo";
+import {
+	ArrowCounterClockwiseIcon,
+	RobotIcon,
+	SignatureIcon,
+} from "@phosphor-icons/react";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { useMailbox, useUpdateMailbox } from "~/queries/mailboxes";
@@ -20,12 +33,18 @@ export default function SettingsRoute() {
 
 	const [displayName, setDisplayName] = useState("");
 	const [agentPrompt, setAgentPrompt] = useState("");
+	const [signatureEnabled, setSignatureEnabled] = useState(false);
+	const [signatureMarkdown, setSignatureMarkdown] = useState("");
 	const [isSaving, setIsSaving] = useState(false);
 
 	useEffect(() => {
 		if (mailbox) {
 			setDisplayName(mailbox.settings?.fromName || mailbox.name || "");
 			setAgentPrompt(mailbox.settings?.agentSystemPrompt || "");
+			setSignatureEnabled(mailbox.settings?.signature?.enabled || false);
+			setSignatureMarkdown(
+				mailbox.settings?.signature?.markdown || mailbox.settings?.signature?.text || "",
+			);
 		}
 	}, [mailbox]);
 
@@ -36,6 +55,13 @@ export default function SettingsRoute() {
 			...mailbox.settings,
 			fromName: displayName,
 			agentSystemPrompt: agentPrompt.trim() || undefined,
+			signature: {
+				...mailbox.settings?.signature,
+				enabled: signatureEnabled,
+				text: signatureMarkdown,
+				markdown: signatureMarkdown,
+				html: undefined,
+			},
 		};
 		try {
 			await updateMailboxMutation.mutateAsync({ mailboxId, settings });
@@ -81,6 +107,75 @@ export default function SettingsRoute() {
 							onChange={(e) => setDisplayName(e.target.value)}
 						/>
 						<Input label="Email" type="email" value={mailbox.email} disabled />
+					</div>
+				</div>
+
+				{/* Email Signature */}
+				<div className="rounded-lg border border-kumo-line bg-kumo-base p-5">
+					<div className="flex items-start justify-between gap-4 mb-4">
+						<div className="flex items-center gap-2">
+							<SignatureIcon
+								size={16}
+								weight="duotone"
+								className="text-kumo-subtle"
+							/>
+							<span className="text-sm font-medium text-kumo-default">
+								Email Signature
+							</span>
+							{signatureEnabled ? (
+								<Badge variant="primary">Enabled</Badge>
+							) : (
+								<Badge variant="secondary">Disabled</Badge>
+							)}
+						</div>
+						<div className="flex items-center gap-2 text-xs text-kumo-subtle">
+							<span>
+								{signatureEnabled
+									? "Append to new messages"
+									: "Keep hidden in compose"}
+							</span>
+							<Switch
+								checked={signatureEnabled}
+								onCheckedChange={setSignatureEnabled}
+							/>
+						</div>
+					</div>
+					<p className="text-xs text-kumo-subtle mb-3">
+						Write in Markdown; sent emails receive rendered HTML, not raw
+						Markdown syntax. Supports paragraphs, links, bold, italic,
+						inline code, and simple lists.
+					</p>
+					<div className="grid gap-4 md:grid-cols-2">
+						<div>
+							<div className="text-xs font-medium text-kumo-default mb-2">
+								Markdown
+							</div>
+							<textarea
+								value={signatureMarkdown}
+								onChange={(e) => setSignatureMarkdown(e.target.value)}
+								placeholder={`Best,\n**${displayName || mailbox.name}**\n[Website](https://example.com)`}
+								rows={8}
+								className="w-full resize-y rounded-lg border border-kumo-line bg-kumo-recessed px-3 py-2 text-sm text-kumo-default placeholder:text-kumo-subtle focus:outline-none focus:ring-1 focus:ring-kumo-ring font-mono leading-relaxed"
+							/>
+						</div>
+						<div>
+							<div className="text-xs font-medium text-kumo-default mb-2">
+								Preview — sent as formatted HTML
+							</div>
+							<div className="min-h-[174px] rounded-lg border border-kumo-line bg-kumo-recessed px-4 py-3 text-sm text-kumo-default">
+								{signatureMarkdown.trim() ? (
+									<div className="border-t border-kumo-line pt-3 text-kumo-default [&_a]:text-kumo-link [&_a:hover]:text-kumo-link-hover [&_code]:rounded [&_code]:bg-kumo-fill [&_code]:px-1 [&_li]:my-1 [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-5">
+										<Markdown remarkPlugins={[remarkGfm]}>
+											{signatureMarkdown}
+										</Markdown>
+									</div>
+								) : (
+									<div className="flex h-full min-h-[140px] items-center justify-center text-center text-xs text-kumo-subtle">
+										Your formatted signature preview will appear here.
+									</div>
+								)}
+							</div>
+						</div>
 					</div>
 				</div>
 

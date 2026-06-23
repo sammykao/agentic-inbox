@@ -5,6 +5,7 @@
 export interface SignatureSettings {
 	enabled: boolean;
 	text: string;
+	markdown?: string;
 	html?: string;
 }
 
