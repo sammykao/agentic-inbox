@@ -17,6 +17,7 @@ import {
 	TextStrikethroughIcon,
 	TextUnderlineIcon,
 } from "@phosphor-icons/react";
+import { Extension } from "@tiptap/core";
 import { Color } from "@tiptap/extension-color";
 import Highlight from "@tiptap/extension-highlight";
 import TiptapImage from "@tiptap/extension-image";
@@ -27,6 +28,50 @@ import Underline from "@tiptap/extension-underline";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useCallback, useEffect } from "react";
+
+const EmailHtmlAttributes = Extension.create({
+	name: "emailHtmlAttributes",
+	addGlobalAttributes() {
+		return [
+			{
+				types: [
+					"paragraph",
+					"heading",
+					"blockquote",
+					"bulletList",
+					"orderedList",
+					"listItem",
+					"horizontalRule",
+					"image",
+					"textStyle",
+					"link",
+				],
+				attributes: {
+					class: {
+						default: null,
+						parseHTML: (element) => element.getAttribute("class"),
+					},
+					style: {
+						default: null,
+						parseHTML: (element) => element.getAttribute("style"),
+					},
+					"data-agentic-signature": {
+						default: null,
+						parseHTML: (element) => element.getAttribute("data-agentic-signature"),
+					},
+					width: {
+						default: null,
+						parseHTML: (element) => element.getAttribute("width"),
+					},
+					height: {
+						default: null,
+						parseHTML: (element) => element.getAttribute("height"),
+					},
+				},
+			},
+		];
+	},
+});
 
 interface RichTextEditorProps {
 	value: string;
@@ -39,11 +84,15 @@ export default function RichTextEditor({
 }: RichTextEditorProps) {
 	const editor = useEditor({
 		extensions: [
+			EmailHtmlAttributes,
 			StarterKit,
 			Underline,
 			TextAlign.configure({ types: ["heading", "paragraph"] }),
-			LinkExtension.configure({ openOnClick: false }),
-			TiptapImage,
+			LinkExtension.configure({
+				openOnClick: false,
+				HTMLAttributes: { target: "_blank", rel: "noopener noreferrer" },
+			}),
+			TiptapImage.configure({ inline: true, allowBase64: true }),
 			TextStyle,
 			Color,
 			Highlight.configure({ multicolor: true }),
