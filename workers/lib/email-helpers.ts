@@ -165,13 +165,14 @@ export function escapeHtml(text: string): string {
 
 /**
  * Convert plain text to a simple HTML block with preserved whitespace.
- * Uses both `white-space:pre-wrap` (modern clients) and `<br>` tags
- * (clients that strip inline styles, e.g. Outlook) as a belt-and-suspenders approach.
+ * Uses `<br>` tags instead of `white-space:pre-wrap` so clients that
+ * preserve both whitespace and `<br>` tags (e.g. Gmail) do not render
+ * double-spaced line breaks.
  */
 export function textToHtml(text: string): string {
 	if (!text) return "";
 	const escaped = escapeHtml(text).replace(/\n/g, "<br>");
-	return `<div style="white-space:pre-wrap">${escaped}</div>`;
+	return `<div>${escaped}</div>`;
 }
 
 /**
