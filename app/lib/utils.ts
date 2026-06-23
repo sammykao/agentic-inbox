@@ -129,20 +129,87 @@ export function escapeHtml(text: string): string {
 		.replace(/'/g, "&#39;");
 }
 
+function renderInlineMarkdown(text: string): string {
+	return escapeHtml(text)
+		.replace(/`([^`]+)`/g, "<code>$1</code>")
+		.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+		.replace(/__([^_]+)__/g, "<strong>$1</strong>")
+		.replace(/\*([^*]+)\*/g, "<em>$1</em>")
+		.replace(/_([^_]+)_/g, "<em>$1</em>")
+		.replace(
+			/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+			'<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>',
+		);
+}
+
+/**
+ * Convert a small, email-safe subset of Markdown into sanitized HTML.
+ * Supports paragraphs, hard line breaks, unordered lists, links, bold, italic,
+ * and inline code so signatures stay portable across mail clients.
+ */
+export function markdownSignatureToHtml(markdown: string): string {
+	const lines = markdown.replace(/\r\n/g, "\n").split("\n");
+	const blocks: string[] = [];
+	let paragraph: string[] = [];
+	let listItems: string[] = [];
+
+	const flushParagraph = () => {
+		if (paragraph.length === 0) return;
+		blocks.push(`<p>${paragraph.map(renderInlineMarkdown).join("<br>")}</p>`);
+		paragraph = [];
+	};
+
+	const flushList = () => {
+		if (listItems.length === 0) return;
+		blocks.push(
+			`<ul>${listItems
+				.map((item) => `<li>${renderInlineMarkdown(item)}</li>`)
+				.join("")}</ul>`,
+		);
+		listItems = [];
+	};
+
+	for (const line of lines) {
+		const trimmed = line.trim();
+		const listMatch = /^[-*+]\s+(.+)$/.exec(trimmed);
+		if (!trimmed) {
+			flushParagraph();
+			flushList();
+			continue;
+		}
+		if (listMatch) {
+			flushParagraph();
+			listItems.push(listMatch[1]);
+			continue;
+		}
+		flushList();
+		paragraph.push(trimmed);
+	}
+
+	flushParagraph();
+	flushList();
+
+	return DOMPurify.sanitize(blocks.join(""), {
+		ALLOWED_TAGS: ["a", "br", "code", "em", "li", "p", "strong", "ul"],
+		ALLOWED_ATTR: ["href", "rel", "target"],
+	});
+}
+
 /**
  * Generate the HTML signature block for compose forms.
  */
 export function getSignatureBlock(settings?: {
-	signature?: { enabled: boolean; text?: string; html?: string };
+	signature?: { enabled: boolean; text?: string; html?: string; markdown?: string };
 }): string {
 	const sig = settings?.signature;
-	if (sig?.enabled && (sig?.html || sig?.text)) {
-		// Sanitize HTML signatures with DOMPurify to allow safe formatting
-		// (bold, italic, links, etc.) while stripping scripts and event handlers.
-		// Text signatures are HTML-escaped since they have no formatting.
-		const content = sig.html
-			? DOMPurify.sanitize(sig.html)
-			: escapeHtml(sig.text || "");
+	if (sig?.enabled && (sig?.markdown || sig?.html || sig?.text)) {
+		// Markdown and HTML signatures are sanitized before they are inserted into
+		// the composer. Text signatures are HTML-escaped since they have no formatting.
+		const content = sig.markdown
+			? markdownSignatureToHtml(sig.markdown)
+			: sig.html
+				? DOMPurify.sanitize(sig.html)
+				: escapeHtml(sig.text || "").replace(/\n/g, "<br>");
 		return `<div style="border-top: 1px solid #ccc; margin-top: 16px; padding-top: 12px;">${content}</div>`;
 	}
 	return "";
