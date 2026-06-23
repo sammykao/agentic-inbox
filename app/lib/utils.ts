@@ -51,6 +51,101 @@ export function toEmailListValue(addresses: string[]): string | string[] | undef
 	return addresses.length === 1 ? addresses[0] : addresses;
 }
 
+
+const OUTGOING_EMAIL_SANITIZE_CONFIG = {
+	USE_PROFILES: { html: true },
+	ADD_TAGS: [
+		"table",
+		"thead",
+		"tbody",
+		"tfoot",
+		"tr",
+		"td",
+		"th",
+		"colgroup",
+		"col",
+	],
+	ADD_ATTR: [
+		"align",
+		"alt",
+		"bgcolor",
+		"border",
+		"cellpadding",
+		"cellspacing",
+		"class",
+		"colspan",
+		"data-agentic-signature",
+		"height",
+		"href",
+		"role",
+		"rowspan",
+		"src",
+		"style",
+		"target",
+		"valign",
+		"width",
+	],
+	FORBID_TAGS: ["script", "iframe", "object", "embed", "form", "input", "button"],
+} satisfies Parameters<typeof DOMPurify.sanitize>[1];
+
+function mergeInlineStyle(element: Element, style: string) {
+	const existing = element.getAttribute("style");
+	element.setAttribute("style", existing ? `${style}; ${existing}` : style);
+}
+
+function styleOutgoingEmailFragment(html: string): string {
+	const document = new DOMParser().parseFromString(`<div>${html}</div>`, "text/html");
+	const root = document.body.firstElementChild;
+	if (!root) return html;
+
+	root.querySelectorAll("p").forEach((element) => {
+		mergeInlineStyle(element, "margin:0 0 12px 0; line-height:1.5");
+	});
+	root.querySelectorAll("ul").forEach((element) => {
+		mergeInlineStyle(element, "margin:0 0 12px 24px; padding:0; list-style-type:disc");
+	});
+	root.querySelectorAll("ol").forEach((element) => {
+		mergeInlineStyle(element, "margin:0 0 12px 24px; padding:0; list-style-type:decimal");
+	});
+	root.querySelectorAll("li").forEach((element) => {
+		mergeInlineStyle(element, "margin:0 0 6px 0; line-height:1.5");
+	});
+	root.querySelectorAll("blockquote").forEach((element) => {
+		mergeInlineStyle(
+			element,
+			"border-left:2px solid #c8c8c8; margin:12px 0; padding:0 0 0 12px; color:#666666",
+		);
+	});
+	root.querySelectorAll("hr").forEach((element) => {
+		mergeInlineStyle(element, "border:0; border-top:1px solid #d9d9d9; margin:16px 0");
+	});
+	root.querySelectorAll("a").forEach((element) => {
+		mergeInlineStyle(element, "color:#0b57d0; text-decoration:underline");
+		element.setAttribute("target", "_blank");
+		element.setAttribute("rel", "noopener noreferrer");
+	});
+	root.querySelectorAll("img").forEach((element) => {
+		mergeInlineStyle(element, "max-width:100%; height:auto; border:0");
+	});
+	root.querySelectorAll('[data-agentic-signature="true"]').forEach((element) => {
+		mergeInlineStyle(element, "border-top:1px solid #cccccc; margin-top:16px; padding-top:12px");
+	});
+
+	return root.innerHTML;
+}
+
+/**
+ * Convert editor HTML into portable email HTML. Webmail/desktop clients commonly
+ * strip class-based CSS and ignore app stylesheets, so outgoing messages need
+ * sanitized markup with essential presentation inlined before delivery.
+ */
+export function prepareOutgoingEmailHtml(html: string): string {
+	const sanitized = DOMPurify.sanitize(html, OUTGOING_EMAIL_SANITIZE_CONFIG);
+	const styled = styleOutgoingEmailFragment(sanitized);
+
+	return `<div style="font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:1.5; color:#111111; word-wrap:break-word; overflow-wrap:break-word;">${styled}</div>`;
+}
+
 /**
  * Convert HTML content to plain text.
  * Uses DOM APIs so must only be called client-side.
