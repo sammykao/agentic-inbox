@@ -15,9 +15,9 @@ import {
 	RobotIcon,
 	SignatureIcon,
 } from "@phosphor-icons/react";
-import DOMPurify from "dompurify";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
+import { sanitizeEmailSignatureHtml } from "~/lib/utils";
 import { useMailbox, useUpdateMailbox } from "~/queries/mailboxes";
 
 // Placeholder shown in the textarea when no custom prompt is set.
@@ -168,7 +168,7 @@ export default function SettingsRoute() {
 									<div
 										className="border-t border-kumo-line pt-3 text-kumo-default [&_a]:text-kumo-link [&_a:hover]:text-kumo-link-hover [&_code]:rounded [&_code]:bg-kumo-fill [&_code]:px-1 [&_li]:my-1 [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-5"
 										dangerouslySetInnerHTML={{
-											__html: DOMPurify.sanitize(signatureHtml),
+											__html: sanitizeEmailSignatureHtml(signatureHtml),
 										}}
 									/>
 								) : (

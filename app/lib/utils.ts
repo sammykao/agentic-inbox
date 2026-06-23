@@ -147,6 +147,48 @@ function renderInlineMarkdown(text: string): string {
  * Supports paragraphs, hard line breaks, unordered lists, links, bold, italic,
  * and inline code so signatures stay portable across mail clients.
  */
+export const EMAIL_SIGNATURE_SANITIZE_CONFIG = {
+	USE_PROFILES: { html: true },
+	ADD_TAGS: [
+		"html",
+		"body",
+		"head",
+		"meta",
+		"table",
+		"thead",
+		"tbody",
+		"tfoot",
+		"tr",
+		"td",
+		"th",
+		"colgroup",
+		"col",
+	],
+	ADD_ATTR: [
+		"align",
+		"alt",
+		"bgcolor",
+		"border",
+		"cellpadding",
+		"cellspacing",
+		"class",
+		"colspan",
+		"data-agentic-signature",
+		"height",
+		"role",
+		"rowspan",
+		"style",
+		"target",
+		"valign",
+		"width",
+	],
+	FORBID_TAGS: ["script", "iframe", "object", "embed", "form", "input", "button"],
+} satisfies Parameters<typeof DOMPurify.sanitize>[1];
+
+export function sanitizeEmailSignatureHtml(html: string): string {
+	return DOMPurify.sanitize(html, EMAIL_SIGNATURE_SANITIZE_CONFIG);
+}
+
 export function markdownSignatureToHtml(markdown: string): string {
 	const lines = markdown.replace(/\r\n/g, "\n").split("\n");
 	const blocks: string[] = [];
@@ -189,10 +231,7 @@ export function markdownSignatureToHtml(markdown: string): string {
 	flushParagraph();
 	flushList();
 
-	return DOMPurify.sanitize(blocks.join(""), {
-		ALLOWED_TAGS: ["a", "br", "code", "em", "li", "p", "strong", "ul"],
-		ALLOWED_ATTR: ["href", "rel", "target"],
-	});
+	return sanitizeEmailSignatureHtml(blocks.join(""));
 }
 
 /**
@@ -207,11 +246,11 @@ export function getSignatureBlock(settings?: {
 		// Markdown remains as a legacy fallback for previously saved settings.
 		// Text signatures are HTML-escaped since they have no formatting.
 		const content = sig.html
-			? DOMPurify.sanitize(sig.html)
+			? sanitizeEmailSignatureHtml(sig.html)
 			: sig.markdown
 				? markdownSignatureToHtml(sig.markdown)
 				: escapeHtml(sig.text || "").replace(/\n/g, "<br>");
-		return `<div style="border-top: 1px solid #ccc; margin-top: 16px; padding-top: 12px;">${content}</div>`;
+		return `<div data-agentic-signature="true" style="border-top: 1px solid #ccc; margin-top: 16px; padding-top: 12px;">${content}</div>`;
 	}
 	return "";
 }
