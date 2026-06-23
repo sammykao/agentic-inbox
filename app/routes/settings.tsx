@@ -15,8 +15,7 @@ import {
 	RobotIcon,
 	SignatureIcon,
 } from "@phosphor-icons/react";
-import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import DOMPurify from "dompurify";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { useMailbox, useUpdateMailbox } from "~/queries/mailboxes";
@@ -34,7 +33,7 @@ export default function SettingsRoute() {
 	const [displayName, setDisplayName] = useState("");
 	const [agentPrompt, setAgentPrompt] = useState("");
 	const [signatureEnabled, setSignatureEnabled] = useState(false);
-	const [signatureMarkdown, setSignatureMarkdown] = useState("");
+	const [signatureHtml, setSignatureHtml] = useState("");
 	const [isSaving, setIsSaving] = useState(false);
 
 	useEffect(() => {
@@ -42,8 +41,11 @@ export default function SettingsRoute() {
 			setDisplayName(mailbox.settings?.fromName || mailbox.name || "");
 			setAgentPrompt(mailbox.settings?.agentSystemPrompt || "");
 			setSignatureEnabled(mailbox.settings?.signature?.enabled || false);
-			setSignatureMarkdown(
-				mailbox.settings?.signature?.markdown || mailbox.settings?.signature?.text || "",
+			setSignatureHtml(
+				mailbox.settings?.signature?.html ||
+					mailbox.settings?.signature?.markdown ||
+					mailbox.settings?.signature?.text ||
+					"",
 			);
 		}
 	}, [mailbox]);
@@ -58,9 +60,9 @@ export default function SettingsRoute() {
 			signature: {
 				...mailbox.settings?.signature,
 				enabled: signatureEnabled,
-				text: signatureMarkdown,
-				markdown: signatureMarkdown,
-				html: undefined,
+				text: signatureHtml,
+				markdown: undefined,
+				html: signatureHtml,
 			},
 		};
 		try {
@@ -141,18 +143,18 @@ export default function SettingsRoute() {
 						</div>
 					</div>
 					<p className="text-xs text-kumo-subtle mb-3">
-						Write your signature in Markdown. It supports paragraphs, links,
-						bold, italic, inline code, and simple lists.
+						Paste your signature as HTML. Markdown formatting is not supported
+						here.
 					</p>
 					<div className="grid gap-4 md:grid-cols-2">
 						<div>
 							<div className="text-xs font-medium text-kumo-default mb-2">
-								Markdown
+								HTML
 							</div>
 							<textarea
-								value={signatureMarkdown}
-								onChange={(e) => setSignatureMarkdown(e.target.value)}
-								placeholder={`Best,\n**${displayName || mailbox.name}**\n[Website](https://example.com)`}
+								value={signatureHtml}
+								onChange={(e) => setSignatureHtml(e.target.value)}
+								placeholder={`<p>Best,</p>\n<p><strong>${displayName || mailbox.name}</strong></p>\n<p><a href="https://example.com">Website</a></p>`}
 								rows={8}
 								className="w-full resize-y rounded-lg border border-kumo-line bg-kumo-recessed px-3 py-2 text-sm text-kumo-default placeholder:text-kumo-subtle focus:outline-none focus:ring-1 focus:ring-kumo-ring font-mono leading-relaxed"
 							/>
@@ -162,12 +164,13 @@ export default function SettingsRoute() {
 								Preview
 							</div>
 							<div className="min-h-[174px] rounded-lg border border-kumo-line bg-kumo-recessed px-4 py-3 text-sm text-kumo-default">
-								{signatureMarkdown.trim() ? (
-									<div className="border-t border-kumo-line pt-3 text-kumo-default [&_a]:text-kumo-link [&_a:hover]:text-kumo-link-hover [&_code]:rounded [&_code]:bg-kumo-fill [&_code]:px-1 [&_li]:my-1 [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-5">
-										<Markdown remarkPlugins={[remarkGfm]}>
-											{signatureMarkdown}
-										</Markdown>
-									</div>
+								{signatureHtml.trim() ? (
+									<div
+										className="border-t border-kumo-line pt-3 text-kumo-default [&_a]:text-kumo-link [&_a:hover]:text-kumo-link-hover [&_code]:rounded [&_code]:bg-kumo-fill [&_code]:px-1 [&_li]:my-1 [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-5"
+										dangerouslySetInnerHTML={{
+											__html: DOMPurify.sanitize(signatureHtml),
+										}}
+									/>
 								) : (
 									<div className="flex h-full min-h-[140px] items-center justify-center text-center text-xs text-kumo-subtle">
 										Your formatted signature preview will appear here.
