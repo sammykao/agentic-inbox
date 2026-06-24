@@ -17,7 +17,7 @@ import {
 	TextStrikethroughIcon,
 	TextUnderlineIcon,
 } from "@phosphor-icons/react";
-import { Extension } from "@tiptap/core";
+import { Extension, Node, mergeAttributes } from "@tiptap/core";
 import { Color } from "@tiptap/extension-color";
 import Highlight from "@tiptap/extension-highlight";
 import TiptapImage from "@tiptap/extension-image";
@@ -28,6 +28,85 @@ import Underline from "@tiptap/extension-underline";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useCallback, useEffect } from "react";
+
+const TABLE_ATTRIBUTES = [
+	"align",
+	"bgcolor",
+	"border",
+	"cellpadding",
+	"cellspacing",
+	"class",
+	"colspan",
+	"height",
+	"role",
+	"rowspan",
+	"style",
+	"valign",
+	"width",
+] as const;
+
+function preserveHtmlAttributes() {
+	return Object.fromEntries(
+		TABLE_ATTRIBUTES.map((attribute) => [
+			attribute,
+			{
+				default: null,
+				parseHTML: (element: HTMLElement) => element.getAttribute(attribute),
+				renderHTML: (attributes: Record<string, string | null>) =>
+					attributes[attribute] ? { [attribute]: attributes[attribute] } : {},
+			},
+		]),
+	);
+}
+
+const EmailTable = Node.create({
+	name: "emailTable",
+	group: "block",
+	content: "emailTableRow+",
+	parseHTML() {
+		return [{ tag: "table" }];
+	},
+	renderHTML({ HTMLAttributes }) {
+		return ["table", mergeAttributes(HTMLAttributes), ["tbody", 0]];
+	},
+	addAttributes: preserveHtmlAttributes,
+});
+
+const EmailTableRow = Node.create({
+	name: "emailTableRow",
+	content: "(emailTableCell | emailTableHeader)+",
+	parseHTML() {
+		return [{ tag: "tr" }];
+	},
+	renderHTML({ HTMLAttributes }) {
+		return ["tr", mergeAttributes(HTMLAttributes), 0];
+	},
+	addAttributes: preserveHtmlAttributes,
+});
+
+const EmailTableCell = Node.create({
+	name: "emailTableCell",
+	content: "block+",
+	parseHTML() {
+		return [{ tag: "td" }];
+	},
+	renderHTML({ HTMLAttributes }) {
+		return ["td", mergeAttributes(HTMLAttributes), 0];
+	},
+	addAttributes: preserveHtmlAttributes,
+});
+
+const EmailTableHeader = Node.create({
+	name: "emailTableHeader",
+	content: "block+",
+	parseHTML() {
+		return [{ tag: "th" }];
+	},
+	renderHTML({ HTMLAttributes }) {
+		return ["th", mergeAttributes(HTMLAttributes), 0];
+	},
+	addAttributes: preserveHtmlAttributes,
+});
 
 const EmailHtmlAttributes = Extension.create({
 	name: "emailHtmlAttributes",
@@ -45,6 +124,10 @@ const EmailHtmlAttributes = Extension.create({
 					"image",
 					"textStyle",
 					"link",
+					"emailTable",
+					"emailTableRow",
+					"emailTableCell",
+					"emailTableHeader",
 				],
 				attributes: {
 					class: {
@@ -85,6 +168,10 @@ export default function RichTextEditor({
 	const editor = useEditor({
 		extensions: [
 			EmailHtmlAttributes,
+			EmailTable,
+			EmailTableRow,
+			EmailTableCell,
+			EmailTableHeader,
 			StarterKit,
 			Underline,
 			TextAlign.configure({ types: ["heading", "paragraph"] }),

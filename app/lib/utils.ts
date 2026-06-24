@@ -99,16 +99,16 @@ function styleOutgoingEmailFragment(html: string): string {
 	if (!root) return html;
 
 	root.querySelectorAll("p").forEach((element) => {
-		mergeInlineStyle(element, "margin:0 0 12px 0; line-height:1.5");
+		mergeInlineStyle(element, "margin:0; line-height:inherit");
 	});
 	root.querySelectorAll("ul").forEach((element) => {
-		mergeInlineStyle(element, "margin:0 0 12px 24px; padding:0; list-style-type:disc");
+		mergeInlineStyle(element, "margin:0 0 0 24px; padding:0; list-style-type:disc");
 	});
 	root.querySelectorAll("ol").forEach((element) => {
-		mergeInlineStyle(element, "margin:0 0 12px 24px; padding:0; list-style-type:decimal");
+		mergeInlineStyle(element, "margin:0 0 0 24px; padding:0; list-style-type:decimal");
 	});
 	root.querySelectorAll("li").forEach((element) => {
-		mergeInlineStyle(element, "margin:0 0 6px 0; line-height:1.5");
+		mergeInlineStyle(element, "margin:0; line-height:inherit");
 	});
 	root.querySelectorAll("blockquote").forEach((element) => {
 		mergeInlineStyle(
@@ -143,7 +143,7 @@ export function prepareOutgoingEmailHtml(html: string): string {
 	const sanitized = DOMPurify.sanitize(html, OUTGOING_EMAIL_SANITIZE_CONFIG);
 	const styled = styleOutgoingEmailFragment(sanitized);
 
-	return `<div style="font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:1.5; color:#111111; word-wrap:break-word; overflow-wrap:break-word;">${styled}</div>`;
+	return `<div style="font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:1.2; color:#111111; word-wrap:break-word; overflow-wrap:break-word;">${styled}</div>`;
 }
 
 /**
